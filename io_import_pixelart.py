@@ -13,7 +13,23 @@ bl_info = {
 import os.path
 import bpy
 
-def read_pixel_art(context, filepath):
+from bpy_extras.io_utils import ImportHelper
+from bpy.props import StringProperty, BoolProperty
+from bpy.types import Operator
+
+MATERIAL_NAME = 'pixel_art_{color}'
+CUBE_NAME = '{filename}_{x}x{y}'
+MESH_NAME = '{filename}_{x}x{y}_mesh'
+
+def read_pixel_art(context, filepath,
+		use_nodes=False,
+		reuse_materials=True,
+		material_name=MATERIAL_NAME,
+		cube_name=CUBE_NAME,
+		mesh_name=MESH_NAME):
+
+	struse_nodes = 'nodes' if use_nodes else ''
+	blender_render = bpy.context.scene.render.engine == 'BLENDER_RENDER'
 	filename = os.path.split(filepath)[1]
 	image = bpy.data.images.load(filepath)
 
@@ -27,6 +43,7 @@ def read_pixel_art(context, filepath):
 		parent.layers = layers
 		bpy.context.scene.objects.link(parent)
 
+		materials = {}
 		width, height = image.size
 		pixels = image.pixels
 		a = 1.0
@@ -50,16 +67,56 @@ def read_pixel_art(context, filepath):
 				if a == 0:
 					continue
 
-				name = 'pixel_art_%d_%d_%d_%d' % (int(r * 255), int(g * 255), int(b * 255), int(a * 255))
-				if name in bpy.data.materials:
+				color = (r, g, b, a)
+				strcolor = '%02X%02X%02X%02X' % (int(r * 255), int(g * 255), int(b * 255), int(a * 255))
+				params = dict(filename=filename, color=strcolor, x=x, y=y, use_nodes=struse_nodes)
+				name = material_name.format(**params)
+
+				if color in materials:
+					material = materials[color]
+
+				elif reuse_materials and name in bpy.data.materials:
 					material = bpy.data.materials[name]
+
 				else:
-					material = bpy.data.materials.new(name=name)
+					material = materials[color] = bpy.data.materials.new(name=name)
 					material.diffuse_color = (r, g, b)
 					material.alpha = a
+					material.use_transparency = a < 1
+					material.use_nodes = use_nodes
 
-				object_name = '%s_%d_%d' % (filename, x, y)
-				mesh = bpy.data.meshes.new(object_name+'_mesh')
+					if use_nodes:
+						tree = material.node_tree
+						tree.nodes.clear()
+
+						if blender_render:
+							output_node = tree.nodes.new('ShaderNodeOutput')
+							output_node.inputs[0].default_value = color
+							output_node.inputs[1].default_value = a
+						
+						else:
+							diffuse_node = tree.nodes.new('ShaderNodeBsdfDiffuse')
+							diffuse_node.inputs[0].default_value = color
+
+							output_node = tree.nodes.new('ShaderNodeOutputMaterial')
+
+							if a < 1:
+								mix_node = tree.nodes.new('ShaderNodeMixShader')
+								mix_node.inputs[0].default_value = a
+
+								transparent_node = tree.nodes.new('ShaderNodeBsdfTransparent')
+								transparent_node.inputs[0].default_value = color
+
+								tree.links.new(diffuse_node.outputs[0], mix_node.inputs[1])
+								tree.links.new(transparent_node.outputs[0], mix_node.inputs[2])
+								tree.links.new(mix_node.outputs[0], output_node.inputs[0])
+
+							else:
+								tree.links.new(diffuse_node.outputs[0], output_node.inputs[0])
+
+				object_name = cube_name.format(**params)
+				cube_mesh_name = mesh_name.format(**params)
+				mesh = bpy.data.meshes.new(cube_mesh_name)
 				mesh.from_pydata([
 					(0, 0, 0), # 0
 					(1, 0, 0), # 1
@@ -87,17 +144,10 @@ def read_pixel_art(context, filepath):
 
 
 	finally:
-		#bpy.data.images.remove(image)
-		pass
+		image.user_clear()
+		bpy.data.images.remove(image)
 
 	return {'FINISHED'}
-
-
-# ImportHelper is a helper class, defines filename and
-# invoke() function which calls the file selector.
-from bpy_extras.io_utils import ImportHelper
-from bpy.props import StringProperty, BoolProperty, EnumProperty
-from bpy.types import Operator
 
 
 class ImportPixelArt(Operator, ImportHelper):
@@ -105,18 +155,24 @@ class ImportPixelArt(Operator, ImportHelper):
 	bl_idname = "import_image.pixel_art"
 	bl_label = "Import Pixel Art"
 
-	# ImportHelper mixin class uses this
 	filename_ext = ".png"
 
-	filter_glob = StringProperty(
-			default="*.png",
-			options={'HIDDEN'})
+	filter_glob = StringProperty(default="*.png", options={'HIDDEN'})
+	use_nodes = BoolProperty(default=False, name="Use material nodes")
+	reuse_materials = BoolProperty(default=True, name="Reuse existing materials with matching names")
+	material_name = StringProperty(default=MATERIAL_NAME, name="Material Name")
+	cube_name = StringProperty(default=CUBE_NAME, name="Cube Name")
+	mesh_name = StringProperty(default=MESH_NAME, name="Mesh Name")
 
 	def execute(self, context):
-		return read_pixel_art(context, self.filepath)
+		return read_pixel_art(context, self.filepath,
+			use_nodes=self.use_nodes,
+			reuse_materials=self.reuse_materials,
+			material_name=self.material_name,
+			cube_name=self.cube_name,
+			mesh_name=self.mesh_name)
 
 
-# Only needed if you want to add into a dynamic menu
 def menu_func_import(self, context):
 	self.layout.operator(ImportPixelArt.bl_idname, text="Import Pixel Art")
 
@@ -132,4 +188,8 @@ def unregister():
 
 
 if __name__ == "__main__":
+	try:
+		unregister()
+	except:
+		pass
 	register()
