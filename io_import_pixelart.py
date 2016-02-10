@@ -22,8 +22,8 @@ CUBE_NAME = '{filename}_{x}x{y}'
 MESH_NAME = '{filename}_{x}x{y}_mesh'
 
 def read_pixel_art(context, filepath,
-		use_nodes=False,
-		reuse_materials=True,
+		use_nodes=True,
+		reuse_materials=False,
 		material_name=MATERIAL_NAME,
 		cube_name=CUBE_NAME,
 		mesh_name=MESH_NAME):
@@ -155,11 +155,9 @@ class ImportPixelArt(Operator, ImportHelper):
 	bl_idname = "import_image.pixel_art"
 	bl_label = "Import Pixel Art"
 
-	filename_ext = ".png"
-
-	filter_glob = StringProperty(default="*.png", options={'HIDDEN'})
-	use_nodes = BoolProperty(default=False, name="Use material nodes")
-	reuse_materials = BoolProperty(default=True, name="Reuse existing materials with matching names")
+	filter_glob = StringProperty(default="*.png;*.gif;*.bmp", options={'HIDDEN'})
+	use_nodes = BoolProperty(default=True, name="Use material nodes")
+	reuse_materials = BoolProperty(default=False, name="Reuse existing materials with matching names")
 	material_name = StringProperty(default=MATERIAL_NAME, name="Material Name")
 	cube_name = StringProperty(default=CUBE_NAME, name="Cube Name")
 	mesh_name = StringProperty(default=MESH_NAME, name="Mesh Name")
