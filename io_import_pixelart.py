@@ -172,7 +172,7 @@ class ImportPixelArt(Operator, ImportHelper):
 
 
 def menu_func_import(self, context):
-	self.layout.operator(ImportPixelArt.bl_idname, text="Import Pixel Art")
+	self.layout.operator(ImportPixelArt.bl_idname, text="Import Pixel Art (.png/.gif/.bmp)")
 
 
 def register():
