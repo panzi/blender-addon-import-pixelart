@@ -3,7 +3,7 @@
 bl_info = {
 	"name": "Import Pixel Art",
 	"author": "Mathias Panzenböck",
-	"version": (1, 0, 0),
+	"version": (1, 0, 1),
 	"blender": (2, 76, 0),
 	"location": "File > Import > Pixel Art",
 	"description": "Imports pixel art images, creating colored cubes for each pixel.",
@@ -149,11 +149,11 @@ def read_pixel_art(context, filepath,
 
 	return {'FINISHED'}
 
-
 class ImportPixelArt(Operator, ImportHelper):
 	"""Imports pixel art images, creating colored cubes for each pixel."""
 	bl_idname = "import_image.pixel_art"
 	bl_label = "Import Pixel Art"
+	bl_options = {'REGISTER', 'UNDO'}
 
 	filter_glob = StringProperty(default="*.png;*.gif;*.bmp", options={'HIDDEN'})
 	use_nodes = BoolProperty(default=True, name="Use material nodes")
