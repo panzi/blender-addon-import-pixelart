@@ -3,10 +3,12 @@
 bl_info = {
 	"name": "Import Pixel Art",
 	"author": "Mathias Panzenböck",
-	"version": (1, 0, 2),
+	"version": (1, 0, 3),
 	"blender": (2, 76, 0),
 	"location": "File > Import > Pixel Art",
 	"description": "Imports pixel art images, creating colored cubes for each pixel.",
+	"wiki_url": "https://github.com/panzi/blender-addon-import-pixelart/blob/master/README.md",
+	"tracker_url": "https://github.com/panzi/blender-addon-import-pixelart/issues",
 	"category": "Import-Export"
 }
 
@@ -19,8 +21,8 @@ from bpy.types import Operator
 
 PARENT_NAME = '{filename}'
 MATERIAL_NAME = 'pixel_art_{color}'
-CUBE_NAME = '{filename}_{x}x{y}'
-MESH_NAME = '{filename}_{x}x{y}_mesh'
+CUBE_NAME = '{filename}_{x}_{y}'
+MESH_NAME = '{filename}_{x}_{y}_mesh'
 
 def read_pixel_art(context, filepath,
 		use_nodes=True,
@@ -30,8 +32,30 @@ def read_pixel_art(context, filepath,
 		mesh_name=MESH_NAME,
 		parent_name=PARENT_NAME):
 
+	cube_verts = [
+		(0, 0, 0), # 0
+		(1, 0, 0), # 1
+		(1, 1, 0), # 2
+		(0, 1, 0), # 3
+		(0, 0, 1), # 4
+		(1, 0, 1), # 5
+		(1, 1, 1), # 6
+		(0, 1, 1)  # 7
+	]
+
+	cube_edges = []
+
+	cube_faces = [
+		(0, 1, 2, 3),
+		(0, 1, 5, 4),
+		(1, 2, 6, 5),
+		(4, 5, 6, 7),
+		(2, 3, 7, 6),
+		(0, 3, 7, 4)
+	]
+
 	struse_nodes = 'nodes' if use_nodes else ''
-	blender_render = bpy.context.scene.render.engine == 'BLENDER_RENDER'
+	blender_cycles = bpy.context.scene.render.engine == 'CYCLES'
 	filename = os.path.split(filepath)[1]
 	image = bpy.data.images.load(filepath)
 
@@ -92,12 +116,7 @@ def read_pixel_art(context, filepath,
 						tree = material.node_tree
 						tree.nodes.clear()
 
-						if blender_render:
-							output_node = tree.nodes.new('ShaderNodeOutput')
-							output_node.inputs[0].default_value = color
-							output_node.inputs[1].default_value = a
-						
-						else:
+						if blender_cycles:
 							diffuse_node = tree.nodes.new('ShaderNodeBsdfDiffuse')
 							diffuse_node.inputs[0].default_value = color
 
@@ -117,29 +136,19 @@ def read_pixel_art(context, filepath,
 							else:
 								tree.links.new(diffuse_node.outputs[0], output_node.inputs[0])
 
-				object_name = cube_name.format(**params)
+						else:
+							output_node = tree.nodes.new('ShaderNodeOutput')
+							output_node.inputs[0].default_value = color
+							output_node.inputs[1].default_value = a
+
 				cube_mesh_name = mesh_name.format(**params)
 				mesh = bpy.data.meshes.new(cube_mesh_name)
-				mesh.from_pydata([
-					(0, 0, 0), # 0
-					(1, 0, 0), # 1
-					(1, 1, 0), # 2
-					(0, 1, 0), # 3
-					(0, 0, 1), # 4
-					(1, 0, 1), # 5
-					(1, 1, 1), # 6
-					(0, 1, 1)  # 7
-				], [], [
-					(0, 1, 2, 3),
-					(0, 1, 5, 4),
-					(1, 2, 6, 5),
-					(4, 5, 6, 7),
-					(2, 3, 7, 6),
-					(0, 3, 7, 4)
-				])
+				mesh.from_pydata(cube_verts, cube_edges, cube_faces)
 				mesh.materials.append(material)
 				mesh.update()
-				obj = bpy.data.objects.new(name=object_name, object_data=mesh)
+
+				cube_object_name = cube_name.format(**params)
+				obj = bpy.data.objects.new(name=cube_object_name, object_data=mesh)
 				obj.layers = layers
 				obj.location = (x, y, 0)
 				obj.parent = parent
