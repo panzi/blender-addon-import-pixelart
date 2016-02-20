@@ -10,19 +10,75 @@ blenders addon settings to use.
 Features
 --------
 
-This add-on imports pixel art images as colored 1x1 cubes. Pixels with 100%
+This add-on imports pixel art images as colored 1x1x1 cubes. Pixels with 100%
 alpha are ignored. All pixels of the same color will share one material. The
 material can use nodes (blender internal or cycles nodes, depending on what
 renderer is used while importing). The names of the created cubes and materials
 can be controlled through format strings.
 
-![](http://i.imgur.com/oP7vGTL.png)
+![](http://i.imgur.com/wOprqJi.png)
 
 The imported pixels are all paranted to an empty object so they can be easily
-transformed as a whole. The cubes have a size of 1x1 so they can be easily
+transformed as a whole. The cubes have a size of 1x1x1 so they can be easily
 moved around pixel-by-pixel while holding ctrl.
 
 ![](http://i.imgur.com/eHTEk6a.png)
+
+Options
+-------
+
+### Use material nodes
+
+When this option is checked the materials of the pixels will use nodes.
+Depending on what render engine is selected while importing it will create
+blender internal or cycles nodes.
+
+### Reuse existing materials with matching names
+
+When this option is checked already existing materials that match the
+specified name will be used instead of creating new ones.
+
+### Object Name
+
+Pattern for the name of the empty object that will be the parent of all the
+pixels. This object is helpful when you want to transform the whole pixel art
+at once. You can safely delete it if you don't want it.
+
+[Pattern variables](#patterns): `{filename}`, `{use_nodes}`
+
+### Pixel Names
+
+Pattern for the names of the pixel objects.
+
+[Pattern variables](#patterns): `{filename}`, `{use_nodes}`, `{color}`, `{x}`, `{y}`
+
+### Mesh Names
+
+Pattern of the names of the meses of the pixels.
+
+[Pattern variables](#patterns): `{filename}`, `{use_nodes}`, `{color}`, `{x}`, `{y}`
+
+### Material Names
+
+Pattern of the names of the materials of the pixels. Note that pixels of the
+same color will also share the same material. This way you can easily change
+the material properties of all pixels of the same color.
+
+[Pattern variables](#patterns): `{filename}`, `{use_nodes}`, `{color}`, `{x}`, `{y}`
+
+Patterns
+--------
+
+In name patterns certain variables will be replaced with their respective
+values. Because these variables use a `{name}`-syntax if you want to include
+curly braces in your names you need to escape them as `{{` and `}}`.
+
+ * `{filename}` – The name of the file (not including the folder names).
+ * `{use_nodes}` – The stirng `nodes` if the use material nodes option is
+   slected, an empty string otherwise.
+ * `{color}` – Hexa-decimal string of the color of the pixel (RRGGBBAA).
+ * `{x}` – X-coordinate of the pixel.
+ * `{y}` – Y-coordinate of the pixel.
 
 MIT License
 -----------
