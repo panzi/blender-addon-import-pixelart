@@ -3,7 +3,7 @@
 bl_info = {
 	"name": "Import Pixel Art",
 	"author": "Mathias Panzenböck",
-	"version": (1, 0, 1),
+	"version": (1, 0, 2),
 	"blender": (2, 76, 0),
 	"location": "File > Import > Pixel Art",
 	"description": "Imports pixel art images, creating colored cubes for each pixel.",
@@ -17,6 +17,7 @@ from bpy_extras.io_utils import ImportHelper
 from bpy.props import StringProperty, BoolProperty
 from bpy.types import Operator
 
+PARENT_NAME = '{filename}'
 MATERIAL_NAME = 'pixel_art_{color}'
 CUBE_NAME = '{filename}_{x}x{y}'
 MESH_NAME = '{filename}_{x}x{y}_mesh'
@@ -26,7 +27,8 @@ def read_pixel_art(context, filepath,
 		reuse_materials=False,
 		material_name=MATERIAL_NAME,
 		cube_name=CUBE_NAME,
-		mesh_name=MESH_NAME):
+		mesh_name=MESH_NAME,
+		parent_name=PARENT_NAME):
 
 	struse_nodes = 'nodes' if use_nodes else ''
 	blender_render = bpy.context.scene.render.engine == 'BLENDER_RENDER'
@@ -39,7 +41,8 @@ def read_pixel_art(context, filepath,
 			raise Exception("cannot handle number of channels in image")
 
 		layers = bpy.context.scene.layers
-		parent = bpy.data.objects.new(name=filename, object_data=None)
+		params = dict(filename=filename, use_nodes=struse_nodes)
+		parent = bpy.data.objects.new(name=parent_name.format(**params), object_data=None)
 		parent.layers = layers
 		bpy.context.scene.objects.link(parent)
 
@@ -156,11 +159,14 @@ class ImportPixelArt(Operator, ImportHelper):
 	bl_options = {'REGISTER', 'UNDO'}
 
 	filter_glob = StringProperty(default="*.png;*.gif;*.bmp", options={'HIDDEN'})
-	use_nodes = BoolProperty(default=True, name="Use material nodes")
+
+	use_nodes       = BoolProperty(default=True, name="Use material nodes")
 	reuse_materials = BoolProperty(default=False, name="Reuse existing materials with matching names")
-	material_name = StringProperty(default=MATERIAL_NAME, name="Material Name")
-	cube_name = StringProperty(default=CUBE_NAME, name="Cube Name")
-	mesh_name = StringProperty(default=MESH_NAME, name="Mesh Name")
+
+	parent_name   = StringProperty(default=PARENT_NAME, name="Object Name")
+	cube_name     = StringProperty(default=CUBE_NAME, name="Pixel Names")
+	mesh_name     = StringProperty(default=MESH_NAME, name="Mesh Names")
+	material_name = StringProperty(default=MATERIAL_NAME, name="Material Names")
 
 	def execute(self, context):
 		return read_pixel_art(context, self.filepath,
@@ -168,7 +174,8 @@ class ImportPixelArt(Operator, ImportHelper):
 			reuse_materials=self.reuse_materials,
 			material_name=self.material_name,
 			cube_name=self.cube_name,
-			mesh_name=self.mesh_name)
+			mesh_name=self.mesh_name,
+			parent_name=self.parent_name)
 
 
 def menu_func_import(self, context):
