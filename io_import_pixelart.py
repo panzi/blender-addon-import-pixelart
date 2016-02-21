@@ -91,8 +91,8 @@ def read_pixel_art(context, filepath,
 					b = pixels[index + 2]
 					a = pixels[index + 3]
 
-				if a == 0:
-					continue
+					if a == 0:
+						continue
 
 				color = (r, g, b, a)
 				strcolor = '%02X%02X%02X%02X' % (int(r * 255), int(g * 255), int(b * 255), int(a * 255))
