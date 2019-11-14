@@ -3,8 +3,8 @@
 bl_info = {
 	"name": "Import Pixel Art",
 	"author": "Mathias Panzenböck",
-	"version": (1, 0, 3),
-	"blender": (2, 76, 0),
+	"version": (1,  0, 4),
+	"blender": (2, 80, 0),
 	"location": "File > Import > Pixel Art",
 	"description": "Imports pixel art images, creating colored cubes for each pixel.",
 	"wiki_url": "https://github.com/panzi/blender-addon-import-pixelart/blob/master/README.md",
@@ -24,13 +24,13 @@ MATERIAL_NAME = 'pixel_art_{color}'
 CUBE_NAME = '{filename}_{x}_{y}'
 MESH_NAME = '{filename}_{x}_{y}_mesh'
 
-def read_pixel_art(context, filepath,
-		use_nodes=True,
-		reuse_materials=False,
-		material_name=MATERIAL_NAME,
-		cube_name=CUBE_NAME,
-		mesh_name=MESH_NAME,
-		parent_name=PARENT_NAME):
+def read_pixel_art(context, filepath: str,
+		use_nodes:bool=True,
+		reuse_materials:bool=False,
+		material_name:str=MATERIAL_NAME,
+		cube_name:str=CUBE_NAME,
+		mesh_name:str=MESH_NAME,
+		parent_name:str=PARENT_NAME):
 
 	cube_verts = [
 		(0, 0, 0), # 0
@@ -40,7 +40,7 @@ def read_pixel_art(context, filepath,
 		(0, 0, 1), # 4
 		(1, 0, 1), # 5
 		(1, 1, 1), # 6
-		(0, 1, 1)  # 7
+		(0, 1, 1), # 7
 	]
 
 	cube_edges = []
@@ -51,24 +51,22 @@ def read_pixel_art(context, filepath,
 		(1, 2, 6, 5),
 		(4, 5, 6, 7),
 		(2, 3, 7, 6),
-		(0, 3, 7, 4)
+		(0, 3, 7, 4),
 	]
 
 	struse_nodes = 'nodes' if use_nodes else ''
-	blender_cycles = bpy.context.scene.render.engine == 'CYCLES'
 	filename = os.path.split(filepath)[1]
 	image = bpy.data.images.load(filepath)
 
 	try:
 		channels = image.channels
 		if channels not in (1, 3, 4):
-			raise Exception("cannot handle number of channels in image")
+			raise IOError(f"Cannot handle image with {channels} channels!")
 
-		layers = bpy.context.scene.layers
 		params = dict(filename=filename, use_nodes=struse_nodes)
 		parent = bpy.data.objects.new(name=parent_name.format(**params), object_data=None)
-		parent.layers = layers
-		bpy.context.scene.objects.link(parent)
+		collection = bpy.context.collection
+		collection.objects.link(parent)
 
 		materials = {}
 		width, height = image.size
@@ -107,39 +105,31 @@ def read_pixel_art(context, filepath,
 
 				else:
 					material = materials[color] = bpy.data.materials.new(name=name)
-					material.diffuse_color = (r, g, b)
-					material.alpha = a
-					material.use_transparency = a < 1
+					material.diffuse_color = color
 					material.use_nodes = use_nodes
 
 					if use_nodes:
 						tree = material.node_tree
 						tree.nodes.clear()
 
-						if blender_cycles:
-							diffuse_node = tree.nodes.new('ShaderNodeBsdfDiffuse')
-							diffuse_node.inputs[0].default_value = color
+						diffuse_node = tree.nodes.new('ShaderNodeBsdfDiffuse')
+						diffuse_node.inputs[0].default_value = color
 
-							output_node = tree.nodes.new('ShaderNodeOutputMaterial')
+						output_node = tree.nodes.new('ShaderNodeOutputMaterial')
 
-							if a < 1:
-								mix_node = tree.nodes.new('ShaderNodeMixShader')
-								mix_node.inputs[0].default_value = a
+						if a < 1:
+							mix_node = tree.nodes.new('ShaderNodeMixShader')
+							mix_node.inputs[0].default_value = a
 
-								transparent_node = tree.nodes.new('ShaderNodeBsdfTransparent')
-								transparent_node.inputs[0].default_value = color
+							transparent_node = tree.nodes.new('ShaderNodeBsdfTransparent')
+							transparent_node.inputs[0].default_value = color
 
-								tree.links.new(diffuse_node.outputs[0], mix_node.inputs[1])
-								tree.links.new(transparent_node.outputs[0], mix_node.inputs[2])
-								tree.links.new(mix_node.outputs[0], output_node.inputs[0])
-
-							else:
-								tree.links.new(diffuse_node.outputs[0], output_node.inputs[0])
+							tree.links.new(diffuse_node.outputs[0], mix_node.inputs[1])
+							tree.links.new(transparent_node.outputs[0], mix_node.inputs[2])
+							tree.links.new(mix_node.outputs[0], output_node.inputs[0])
 
 						else:
-							output_node = tree.nodes.new('ShaderNodeOutput')
-							output_node.inputs[0].default_value = color
-							output_node.inputs[1].default_value = a
+							tree.links.new(diffuse_node.outputs[0], output_node.inputs[0])
 
 				cube_mesh_name = mesh_name.format(**params)
 				mesh = bpy.data.meshes.new(cube_mesh_name)
@@ -149,11 +139,9 @@ def read_pixel_art(context, filepath,
 
 				cube_object_name = cube_name.format(**params)
 				obj = bpy.data.objects.new(name=cube_object_name, object_data=mesh)
-				obj.layers = layers
+				collection.objects.link(obj)
 				obj.location = (x, y, 0)
 				obj.parent = parent
-				bpy.context.scene.objects.link(obj)
-
 
 	finally:
 		image.user_clear()
@@ -167,17 +155,34 @@ class ImportPixelArt(Operator, ImportHelper):
 	bl_label = "Import Pixel Art"
 	bl_options = {'REGISTER', 'UNDO'}
 
-	filter_glob = StringProperty(default="*.png;*.gif;*.bmp", options={'HIDDEN'})
+	filter_glob: StringProperty(default="*.png;*.gif;*.bmp", options={'HIDDEN'})
 
-	use_nodes       = BoolProperty(default=True, name="Use material nodes")
-	reuse_materials = BoolProperty(default=False, name="Reuse existing materials with matching names")
+	use_nodes:       BoolProperty(default=True, name="Use material nodes")
+	reuse_materials: BoolProperty(default=False, name="Reuse existing materials with matching names")
 
-	parent_name   = StringProperty(default=PARENT_NAME, name="Object Name")
-	cube_name     = StringProperty(default=CUBE_NAME, name="Pixel Names")
-	mesh_name     = StringProperty(default=MESH_NAME, name="Mesh Names")
-	material_name = StringProperty(default=MATERIAL_NAME, name="Material Names")
+	parent_name:   StringProperty(default=PARENT_NAME, name="Object Name")
+	cube_name:     StringProperty(default=CUBE_NAME, name="Pixel Names")
+	mesh_name:     StringProperty(default=MESH_NAME, name="Mesh Names")
+	material_name: StringProperty(default=MATERIAL_NAME, name="Material Names")
 
 	def execute(self, context):
+		# validate inputs
+		pix_params = dict(filename='', color='AABBCCDD', x=0, y=0, use_nodes='')
+		for name, value, params in [
+				('object name', self.parent_name, dict(filename='', use_nodes='')),
+				('material names', self.material_name, pix_params),
+				('mesh names', self.mesh_name, pix_params),
+				('pixel names', self.cube_name, pix_params),
+		]:
+			try:
+				value.format(**params)
+			except ValueError as e:
+				self.report({'ERROR'}, f"Format error in {name}: {e}")
+				return {'CANCELLED'}
+			except KeyError as e:
+				self.report({'ERROR'}, f"Illegal key used in {name}: {e}")
+				return {'CANCELLED'}
+
 		return read_pixel_art(context, self.filepath,
 			use_nodes=self.use_nodes,
 			reuse_materials=self.reuse_materials,
@@ -193,12 +198,12 @@ def menu_func_import(self, context):
 
 def register():
 	bpy.utils.register_class(ImportPixelArt)
-	bpy.types.INFO_MT_file_import.append(menu_func_import)
+	bpy.types.TOPBAR_MT_file_import.append(menu_func_import)
 
 
 def unregister():
 	bpy.utils.unregister_class(ImportPixelArt)
-	bpy.types.INFO_MT_file_import.remove(menu_func_import)
+	bpy.types.TOPBAR_MT_file_import.remove(menu_func_import)
 
 
 if __name__ == "__main__":

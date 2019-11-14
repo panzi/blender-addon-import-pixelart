@@ -4,25 +4,24 @@ Import Pixle Art
 Blender add-on that imports pixle art images as colored cubes. Pixels
 with 100% alpha are ignored.
 
-Copy this script to your scripts/addons folder and activate the script in
-blenders addon settings to use.
+Copy this script to your `scripts/addons` folder and activate the script in
+Blender's Add-on preferences to be able use it.
 
 Features
 --------
 
 This add-on imports pixel art images as colored 1x1x1 cubes. Pixels with 100%
 alpha are ignored. All pixels of the same color will share one material. The
-material can use nodes (blender internal or cycles nodes, depending on what
-renderer is used while importing). The names of the created cubes and materials
-can be controlled through format strings.
+material can use nodes. The names of the created cubes and materials can be
+controlled through format strings.
 
-![](http://i.imgur.com/wOprqJi.png)
+![](https://i.imgur.com/Swuoy3s.png)
 
 The imported pixels are all paranted to an empty object so they can be easily
 transformed as a whole. The cubes have a size of 1x1x1 so they can be easily
 moved around pixel-by-pixel while holding ctrl.
 
-![](http://i.imgur.com/eHTEk6a.png)
+![](https://i.imgur.com/Ypj7pAK.png)
 
 Options
 -------
@@ -30,8 +29,6 @@ Options
 ### Use material nodes
 
 When this option is checked the materials of the pixels will use nodes.
-Depending on what render engine is selected while importing it will create
-blender internal or cycles nodes.
 
 ### Reuse existing materials with matching names
 
@@ -73,17 +70,17 @@ In name patterns certain variables will be replaced with their respective
 values. Because these variables use a `{name}`-syntax if you want to include
 curly braces in your names you need to escape them as `{{` and `}}`.
 
- * `{filename}` – The name of the file (not including the folder names).
- * `{use_nodes}` – The stirng `nodes` if the use material nodes option is
-   slected, an empty string otherwise.
- * `{color}` – Hexa-decimal string of the color of the pixel (RRGGBBAA).
- * `{x}` – X-coordinate of the pixel.
- * `{y}` – Y-coordinate of the pixel.
+* `{filename}` – The name of the file (not including the folder names).
+* `{use_nodes}` – The stirng `nodes` if the use material nodes option is
+  slected, an empty string otherwise.
+* `{color}` – Hexa-decimal string of the color of the pixel (RRGGBBAA).
+* `{x}` – X-coordinate of the pixel.
+* `{y}` – Y-coordinate of the pixel.
 
 MIT License
 -----------
 
-Copyright © 2016 Mathias Panzenböck
+Copyright © 2016-2019 Mathias Panzenböck
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of
 this software and associated documentation files (the "Software"), to deal in
