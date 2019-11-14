@@ -4,8 +4,8 @@ Import Pixle Art
 Blender add-on that imports pixle art images as colored cubes. Pixels
 with 100% alpha are ignored.
 
-Copy this script to your `scripts/addons` folder and activate the script in
-Blender's Add-on preferences to be able use it.
+In use the Install button under Edit > Preferences > Add-ons to install this
+script and then click the checkbox to activate it.
 
 Features
 --------
