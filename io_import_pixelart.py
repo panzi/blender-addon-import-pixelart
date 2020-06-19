@@ -12,6 +12,7 @@ bl_info = {
 	"category": "Import-Export"
 }
 
+from time import perf_counter
 import os.path
 import bpy
 
@@ -31,6 +32,8 @@ def read_pixel_art(context, filepath: str,
 		cube_name:str=CUBE_NAME,
 		mesh_name:str=MESH_NAME,
 		parent_name:str=PARENT_NAME):
+
+	timestamp = perf_counter()
 
 	cube_verts = [
 		(0, 0, 0), # 0
@@ -56,17 +59,23 @@ def read_pixel_art(context, filepath: str,
 
 	struse_nodes = 'nodes' if use_nodes else ''
 	filename = os.path.split(filepath)[1]
+
 	image = bpy.data.images.load(filepath)
 
 	try:
+		# reduce property lookups in loop:
+		bpy_data_materials = bpy.data.materials
+		bpy_data_objects   = bpy.data.objects
+		bpy_data_meshes    = bpy.data.meshes
+		bpy_context_collection_objects = bpy.context.collection.objects
+
 		channels = image.channels
 		if channels not in (1, 3, 4):
 			raise IOError(f"Cannot handle image with {channels} channels!")
 
 		params = dict(filename=filename, use_nodes=struse_nodes)
-		parent = bpy.data.objects.new(name=parent_name.format(**params), object_data=None)
-		collection = bpy.context.collection
-		collection.objects.link(parent)
+		parent = bpy_data_objects.new(name=parent_name.format(**params), object_data=None)
+		bpy_context_collection_objects.link(parent)
 
 		materials = {}
 		width, height = image.size
@@ -97,55 +106,60 @@ def read_pixel_art(context, filepath: str,
 				params = dict(filename=filename, color=strcolor, x=x, y=y, use_nodes=struse_nodes)
 				name = material_name.format(**params)
 
-				if color in materials:
-					material = materials[color]
+				material = materials.get(color)
 
-				elif reuse_materials and name in bpy.data.materials:
-					material = bpy.data.materials[name]
+				if material is None:
+					if reuse_materials:
+						material = bpy_data_materials.get(name)
 
-				else:
-					material = materials[color] = bpy.data.materials.new(name=name)
-					material.diffuse_color = color
-					material.use_nodes = use_nodes
+					if material is not None:
+						materials[color] = material
+					else:
+						material = materials[color] = bpy_data_materials.new(name=name)
+						material.diffuse_color = color
+						material.use_nodes = use_nodes
 
-					if use_nodes:
-						tree = material.node_tree
-						tree.nodes.clear()
+						if use_nodes:
+							tree = material.node_tree
+							tree.nodes.clear()
 
-						diffuse_node = tree.nodes.new('ShaderNodeBsdfDiffuse')
-						diffuse_node.inputs[0].default_value = color
+							diffuse_node = tree.nodes.new('ShaderNodeBsdfDiffuse')
+							diffuse_node.inputs[0].default_value = color
 
-						output_node = tree.nodes.new('ShaderNodeOutputMaterial')
+							output_node = tree.nodes.new('ShaderNodeOutputMaterial')
 
-						if a < 1:
-							mix_node = tree.nodes.new('ShaderNodeMixShader')
-							mix_node.inputs[0].default_value = a
+							if a < 1:
+								mix_node = tree.nodes.new('ShaderNodeMixShader')
+								mix_node.inputs[0].default_value = a
 
-							transparent_node = tree.nodes.new('ShaderNodeBsdfTransparent')
-							transparent_node.inputs[0].default_value = color
+								transparent_node = tree.nodes.new('ShaderNodeBsdfTransparent')
+								transparent_node.inputs[0].default_value = color
 
-							tree.links.new(diffuse_node.outputs[0], mix_node.inputs[1])
-							tree.links.new(transparent_node.outputs[0], mix_node.inputs[2])
-							tree.links.new(mix_node.outputs[0], output_node.inputs[0])
+								tree.links.new(diffuse_node.outputs[0], mix_node.inputs[1])
+								tree.links.new(transparent_node.outputs[0], mix_node.inputs[2])
+								tree.links.new(mix_node.outputs[0], output_node.inputs[0])
 
-						else:
-							tree.links.new(diffuse_node.outputs[0], output_node.inputs[0])
+							else:
+								tree.links.new(diffuse_node.outputs[0], output_node.inputs[0])
 
 				cube_mesh_name = mesh_name.format(**params)
-				mesh = bpy.data.meshes.new(cube_mesh_name)
+				mesh = bpy_data_meshes.new(cube_mesh_name)
 				mesh.from_pydata(cube_verts, cube_edges, cube_faces)
 				mesh.materials.append(material)
 				mesh.update()
 
 				cube_object_name = cube_name.format(**params)
-				obj = bpy.data.objects.new(name=cube_object_name, object_data=mesh)
-				collection.objects.link(obj)
+				obj = bpy_data_objects.new(name=cube_object_name, object_data=mesh)
+				bpy_context_collection_objects.link(obj)
 				obj.location = (x, y, 0)
 				obj.parent = parent
 
 	finally:
 		image.user_clear()
 		bpy.data.images.remove(image)
+
+	duration = perf_counter() - timestamp
+	print("import pixle art took %f seconds" % duration)
 
 	return {'FINISHED'}
 
