@@ -3,7 +3,7 @@
 bl_info = {
 	"name": "Import Pixel Art",
 	"author": "Mathias Panzenböck",
-	"version": (1,  1, 0),
+	"version": (1,  1, 1),
 	"blender": (2, 80, 0),
 	"location": "File > Import > Pixel Art",
 	"description": "Imports pixel art images, creating colored cubes or squares for each pixel.",
