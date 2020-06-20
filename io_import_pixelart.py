@@ -3,10 +3,10 @@
 bl_info = {
 	"name": "Import Pixel Art",
 	"author": "Mathias Panzenböck",
-	"version": (1,  0, 4),
+	"version": (1,  1, 0),
 	"blender": (2, 80, 0),
 	"location": "File > Import > Pixel Art",
-	"description": "Imports pixel art images, creating colored cubes for each pixel.",
+	"description": "Imports pixel art images, creating colored cubes or squares for each pixel.",
 	"wiki_url": "https://github.com/panzi/blender-addon-import-pixelart/blob/master/README.md",
 	"tracker_url": "https://github.com/panzi/blender-addon-import-pixelart/issues",
 	"category": "Import-Export"

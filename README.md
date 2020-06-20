@@ -1,30 +1,43 @@
 Import Pixle Art
 ================
 
-Blender add-on that imports pixle art images as colored cubes. Pixels
-with 100% alpha are ignored.
+Blender add-on that imports pixle art images as colored cubes or squares.
+Pixels with 100% alpha are ignored.
 
-In use the Install button under Edit > Preferences > Add-ons to install this
+Use the Install button under Edit > Preferences > Add-ons to install this
 script and then click the checkbox to activate it.
 
 Features
 --------
 
-This add-on imports pixel art images as colored 1x1x1 cubes. Pixels with 100%
-alpha are ignored. All pixels of the same color will share one material. The
-material can use nodes. The names of the created cubes and materials can be
-controlled through format strings.
+This add-on imports pixel art images as colored 1x1x1 separate cubes or 1x1
+planes in a single mesh. Pixels with 100% alpha are ignored. All pixels of the
+same color will share one material. The material can use nodes. The names of
+the created cubes and materials can be controlled through format strings.
 
-![](https://i.imgur.com/Swuoy3s.png)
+![](https://i.imgur.com/d9jeYRt.png)
 
-The imported pixels are all paranted to an empty object so they can be easily
-transformed as a whole. The cubes have a size of 1x1x1 so they can be easily
-moved around pixel-by-pixel while holding ctrl.
+If you use the option 'Separate Cubes' then the imported pixels are all parented
+to an empty object so they can be easily transformed as a whole. The cubes have
+a size of 1x1x1 so they can be easily moved around pixel-by-pixel while holding
+ctrl.
 
-![](https://i.imgur.com/Ypj7pAK.png)
+![](https://i.imgur.com/f6kIrQw.png)
+
+If you use the option '2D Mesh' all the pixels will be planes in one single mesh.
+If you still want cubes then simply extrude the whole mesh by 1 unit in the Z
+direction. This option imports much faster and it seems it is also faster to
+work with a single large mesh in blender than to work with many small objects.
+
+![](https://i.imgur.com/C4lITnC.png)
 
 Options
 -------
+
+### Import As
+
+* Separate Cubes: Separate cubes where each cube is its own object.
+* 2D Mesh: A single mesh that contains all pixels as squares.
 
 ### Use material nodes
 
@@ -80,7 +93,7 @@ curly braces in your names you need to escape them as `{{` and `}}`.
 MIT License
 -----------
 
-Copyright © 2016-2019 Mathias Panzenböck
+Copyright © 2016-2020 Mathias Panzenböck
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of
 this software and associated documentation files (the "Software"), to deal in
