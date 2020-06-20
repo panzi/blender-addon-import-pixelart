@@ -26,8 +26,10 @@ ctrl.
 
 If you use the option '2D Mesh' all the pixels will be planes in one single mesh.
 If you still want cubes then simply extrude the whole mesh by 1 unit in the Z
-direction. This option imports much faster and it seems it is also faster to
-work with a single large mesh in blender than to work with many small objects.
+direction. Alternatively you simply can use the solidify modifier.
+
+This option imports **much faster** and it seems it is also faster to work with
+a single large mesh in blender than to work with many small objects.
 
 ![](https://i.imgur.com/C4lITnC.png)
 
