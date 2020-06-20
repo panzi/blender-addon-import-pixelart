@@ -17,7 +17,7 @@ import os.path
 import bpy
 
 from bpy_extras.io_utils import ImportHelper
-from bpy.props import StringProperty, BoolProperty
+from bpy.props import StringProperty, BoolProperty, EnumProperty
 from bpy.types import Operator
 
 PARENT_NAME = '{filename}'
@@ -26,6 +26,7 @@ CUBE_NAME = '{filename}_{x}_{y}'
 MESH_NAME = '{filename}_{x}_{y}_mesh'
 
 def read_pixel_art(context, filepath: str,
+		import_as:str='CUBES',
 		use_nodes:bool=True,
 		reuse_materials:bool=False,
 		material_name:str=MATERIAL_NAME,
@@ -35,28 +36,6 @@ def read_pixel_art(context, filepath: str,
 
 	timestamp = perf_counter()
 
-	cube_verts = [
-		(0, 0, 0), # 0
-		(1, 0, 0), # 1
-		(1, 1, 0), # 2
-		(0, 1, 0), # 3
-		(0, 0, 1), # 4
-		(1, 0, 1), # 5
-		(1, 1, 1), # 6
-		(0, 1, 1), # 7
-	]
-
-	cube_edges = []
-
-	cube_faces = [
-		(0, 1, 2, 3),
-		(0, 1, 5, 4),
-		(1, 2, 6, 5),
-		(4, 5, 6, 7),
-		(2, 3, 7, 6),
-		(0, 3, 7, 4),
-	]
-
 	struse_nodes = 'nodes' if use_nodes else ''
 	filename = os.path.split(filepath)[1]
 
@@ -64,102 +43,207 @@ def read_pixel_art(context, filepath: str,
 
 	try:
 		# reduce property lookups in loop:
-		bpy_data_materials = bpy.data.materials
-		bpy_data_objects   = bpy.data.objects
-		bpy_data_meshes    = bpy.data.meshes
+		bpy_data_materials     = bpy.data.materials
+		bpy_data_materials_get = bpy_data_materials.get
+		bpy_data_materials_new = bpy_data_materials.new
+		bpy_data_objects_new   = bpy.data.objects.new
+		bpy_data_meshes_new    = bpy.data.meshes.new
 		bpy_context_collection_objects = bpy.context.collection.objects
+
+		def get_or_create_material(name:str, color:tuple):
+			material = materials.get(color)
+
+			if material is None:
+				if reuse_materials:
+					material = bpy_data_materials_get(name)
+
+				if material is not None:
+					materials[color] = material
+				else:
+					material = materials[color] = bpy_data_materials_new(name=name)
+					material.diffuse_color = color
+					material.use_nodes = use_nodes
+
+					if use_nodes:
+						tree = material.node_tree
+						tree_nodes = tree.nodes
+						tree_nodes_new = tree_nodes.new
+						tree_nodes.clear()
+
+						diffuse_node = tree_nodes_new('ShaderNodeBsdfDiffuse')
+						diffuse_node.inputs[0].default_value = color
+
+						output_node = tree_nodes_new('ShaderNodeOutputMaterial')
+
+						a = color[3]
+						tree_links_new = tree.links.new
+						if a < 1:
+							mix_node = tree_nodes_new('ShaderNodeMixShader')
+							mix_node.inputs[0].default_value = a
+
+							transparent_node = tree_nodes_new('ShaderNodeBsdfTransparent')
+							transparent_node.inputs[0].default_value = color
+
+							tree_links_new(diffuse_node.outputs[0], mix_node.inputs[1])
+							tree_links_new(transparent_node.outputs[0], mix_node.inputs[2])
+							tree_links_new(mix_node.outputs[0], output_node.inputs[0])
+
+						else:
+							tree_links_new(diffuse_node.outputs[0], output_node.inputs[0])
+
+			return material
 
 		channels = image.channels
 		if channels not in (1, 3, 4):
 			raise IOError(f"Cannot handle image with {channels} channels!")
 
 		params = dict(filename=filename, use_nodes=struse_nodes)
-		parent = bpy_data_objects.new(name=parent_name.format(**params), object_data=None)
-		bpy_context_collection_objects.link(parent)
+		obj_name = parent_name.format(**params)
 
 		materials = {}
 		width, height = image.size
 		pixels = image.pixels
 		a = 1.0
-		for y in range(height):
-			offset = y * channels * width
-			for x in range(width):
-				if channels == 1:
-					r = g = b = image.pixels[offset + x]
-				elif channels == 3:
-					index = offset + x * channels
-					r = pixels[index]
-					g = pixels[index + 1]
-					b = pixels[index + 2]
-				else:
-					index = offset + x * channels
-					r = pixels[index]
-					g = pixels[index + 1]
-					b = pixels[index + 2]
-					a = pixels[index + 3]
 
-					if a == 0:
-						continue
+		if import_as == 'CUBES':
+			cube_verts = (
+				(0, 0, 0), # 0
+				(1, 0, 0), # 1
+				(1, 1, 0), # 2
+				(0, 1, 0), # 3
+				(0, 0, 1), # 4
+				(1, 0, 1), # 5
+				(1, 1, 1), # 6
+				(0, 1, 1), # 7
+			)
 
-				color = (r, g, b, a)
-				strcolor = '%02X%02X%02X%02X' % (int(r * 255), int(g * 255), int(b * 255), int(a * 255))
-				params = dict(filename=filename, color=strcolor, x=x, y=y, use_nodes=struse_nodes)
-				name = material_name.format(**params)
+			cube_edges = ()
 
-				material = materials.get(color)
+			cube_faces = (
+				(0, 1, 2, 3),
+				(0, 1, 5, 4),
+				(1, 2, 6, 5),
+				(4, 5, 6, 7),
+				(2, 3, 7, 6),
+				(0, 3, 7, 4),
+			)
 
-				if material is None:
-					if reuse_materials:
-						material = bpy_data_materials.get(name)
+			parent = bpy_data_objects_new(name=obj_name, object_data=None)
+			bpy_context_collection_objects.link(parent)
 
-					if material is not None:
-						materials[color] = material
+			for y in range(height):
+				offset = y * channels * width
+				for x in range(width):
+					if channels == 1:
+						r = g = b = image.pixels[offset + x]
+					elif channels == 3:
+						index = offset + x * channels
+						r = pixels[index]
+						g = pixels[index + 1]
+						b = pixels[index + 2]
 					else:
-						material = materials[color] = bpy_data_materials.new(name=name)
-						material.diffuse_color = color
-						material.use_nodes = use_nodes
+						index = offset + x * channels
+						r = pixels[index]
+						g = pixels[index + 1]
+						b = pixels[index + 2]
+						a = pixels[index + 3]
 
-						if use_nodes:
-							tree = material.node_tree
-							tree.nodes.clear()
+						if a == 0:
+							continue
 
-							diffuse_node = tree.nodes.new('ShaderNodeBsdfDiffuse')
-							diffuse_node.inputs[0].default_value = color
+					color = (r, g, b, a)
+					strcolor = '%02X%02X%02X%02X' % (int(r * 255), int(g * 255), int(b * 255), int(a * 255))
+					params = dict(filename=filename, color=strcolor, x=x, y=y, use_nodes=struse_nodes)
+					name = material_name.format(**params)
 
-							output_node = tree.nodes.new('ShaderNodeOutputMaterial')
+					material = get_or_create_material(name, color)
 
-							if a < 1:
-								mix_node = tree.nodes.new('ShaderNodeMixShader')
-								mix_node.inputs[0].default_value = a
+					cube_mesh_name = mesh_name.format(**params)
+					mesh = bpy_data_meshes_new(cube_mesh_name)
+					mesh.from_pydata(cube_verts, cube_edges, cube_faces)
+					mesh.materials.append(material)
+					mesh.update()
 
-								transparent_node = tree.nodes.new('ShaderNodeBsdfTransparent')
-								transparent_node.inputs[0].default_value = color
+					cube_object_name = cube_name.format(**params)
+					obj = bpy_data_objects_new(name=cube_object_name, object_data=mesh)
+					bpy_context_collection_objects.link(obj)
+					obj.location = (x, y, 0)
+					obj.parent = parent
 
-								tree.links.new(diffuse_node.outputs[0], mix_node.inputs[1])
-								tree.links.new(transparent_node.outputs[0], mix_node.inputs[2])
-								tree.links.new(mix_node.outputs[0], output_node.inputs[0])
+		elif import_as == '2D_MESH':
 
-							else:
-								tree.links.new(diffuse_node.outputs[0], output_node.inputs[0])
+			pixel_verts = []
+			pixel_edges = []
+			pixel_faces = []
+			face_materials = []
+			material_slots = {}
 
-				cube_mesh_name = mesh_name.format(**params)
-				mesh = bpy_data_meshes.new(cube_mesh_name)
-				mesh.from_pydata(cube_verts, cube_edges, cube_faces)
-				mesh.materials.append(material)
-				mesh.update()
+			mesh = bpy_data_meshes_new(obj_name)
+			vert_index = 0
 
-				cube_object_name = cube_name.format(**params)
-				obj = bpy_data_objects.new(name=cube_object_name, object_data=mesh)
-				bpy_context_collection_objects.link(obj)
-				obj.location = (x, y, 0)
-				obj.parent = parent
+			for y in range(height):
+				offset = y * channels * width
+				for x in range(width):
+					if channels == 1:
+						r = g = b = image.pixels[offset + x]
+					elif channels == 3:
+						index = offset + x * channels
+						r = pixels[index]
+						g = pixels[index + 1]
+						b = pixels[index + 2]
+					else:
+						index = offset + x * channels
+						r = pixels[index]
+						g = pixels[index + 1]
+						b = pixels[index + 2]
+						a = pixels[index + 3]
+
+						if a == 0:
+							continue
+
+					color = (r, g, b, a)
+					strcolor = '%02X%02X%02X%02X' % (int(r * 255), int(g * 255), int(b * 255), int(a * 255))
+					params = dict(filename=filename, color=strcolor, x=x, y=y, use_nodes=struse_nodes)
+					name = material_name.format(**params)
+
+					material = get_or_create_material(name, color)
+
+					pixel_verts.append((x,     y,     0))
+					pixel_verts.append((x + 1, y,     0))
+					pixel_verts.append((x + 1, y + 1, 0))
+					pixel_verts.append((x,     y + 1, 0))
+
+					pixel_faces.append((vert_index, vert_index + 1, vert_index + 2, vert_index + 3))
+					vert_index += 4
+
+					material_slot = material_slots.get(material.name)
+					if material_slot is None:
+						material_slot = len(mesh.materials)
+						mesh.materials.append(material)
+						material_slots[material.name] = material_slot
+
+					face_materials.append(material_slot)
+
+			mesh.from_pydata(pixel_verts, pixel_edges, pixel_faces)
+
+			for polygon, material_slot in zip(mesh.polygons, face_materials):
+				polygon.material_index = material_slot
+
+			mesh.update()
+
+			obj = bpy_data_objects_new(name=obj_name, object_data=mesh)
+			bpy_context_collection_objects.link(obj)
+
+
+		else:
+			assert False, f"Illegal import_as value: {import_as}"
 
 	finally:
 		image.user_clear()
 		bpy.data.images.remove(image)
 
 	duration = perf_counter() - timestamp
-	print("import pixle art took %f seconds" % duration)
+	print(f"Imported pixle art {obj_name} in {duration} seconds")
 
 	return {'FINISHED'}
 
@@ -170,6 +254,18 @@ class ImportPixelArt(Operator, ImportHelper):
 	bl_options = {'REGISTER', 'UNDO'}
 
 	filter_glob: StringProperty(default="*.png;*.gif;*.bmp", options={'HIDDEN'})
+
+	import_as: EnumProperty(
+		items=(
+			('CUBES',   'Separate Cubes', "Separate cubes where each cube is its own object.\n"
+			                              "Can be very slow.", "CUBE", 1),
+			('2D_MESH', '2D Mesh',        "A single mesh that contains all pixels as squares.\n"
+			                              "Extrude it by 1 unit in the Z direction to get cubes.",
+			                              "MESH_PLANE", 2),
+		),
+		name="Import As",
+		default='CUBES',
+	)
 
 	use_nodes:       BoolProperty(default=True, name="Use material nodes")
 	reuse_materials: BoolProperty(default=False, name="Reuse existing materials with matching names")
@@ -198,6 +294,7 @@ class ImportPixelArt(Operator, ImportHelper):
 				return {'CANCELLED'}
 
 		return read_pixel_art(context, self.filepath,
+			import_as=self.import_as,
 			use_nodes=self.use_nodes,
 			reuse_materials=self.reuse_materials,
 			material_name=self.material_name,
