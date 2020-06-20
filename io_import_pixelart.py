@@ -279,9 +279,10 @@ def read_pixel_art(context, filepath: str,
 	return {'FINISHED'}
 
 class ImportPixelArt(Operator, ImportHelper):
-	"""Imports pixel art images, creating colored cubes for each pixel."""
-	bl_idname = "import_image.pixel_art"
-	bl_label = "Import Pixel Art"
+	"""Imports pixel art images, creating colored cubes or squares for each pixel."""
+
+	bl_idname  = "import_image.pixel_art"
+	bl_label   = "Import Pixel Art"
 	bl_options = {'REGISTER', 'UNDO'}
 
 	filter_glob: StringProperty(default="*.png;*.gif;*.bmp", options={'HIDDEN'})
