@@ -45,7 +45,8 @@ def read_pixel_art(context, filepath: str,
 	bpy_data_materials_new = bpy_data_materials.new
 	bpy_data_objects_new   = bpy.data.objects.new
 	bpy_data_meshes_new    = bpy.data.meshes.new
-	bpy_context_collection_objects = bpy.context.collection.objects
+	material_name_format   = material_name.format
+	bpy_context_collection_objects_link = bpy.context.collection.objects.link
 
 	def get_or_create_material(name:str, color:tuple):
 		material = materials_get(color)
@@ -140,8 +141,11 @@ def read_pixel_art(context, filepath: str,
 		)
 
 		parent = bpy_data_objects_new(name=obj_name, object_data=None)
-		bpy_context_collection_objects.link(parent)
+		bpy_context_collection_objects_link(parent)
 		params = dict(filename=filename, color='', x=0, y=0, use_nodes=struse_nodes)
+
+		cube_name_format = cube_name.format
+		mesh_name_format = mesh_name.format
 
 		for y in range(height):
 			offset = y * channels * width
@@ -170,19 +174,19 @@ def read_pixel_art(context, filepath: str,
 					params['color'] = '%02X%02X%02X%02X' % (int(r * 255), int(g * 255), int(b * 255), int(a * 255))
 					prev_color = color
 
-				name = material_name.format(**params)
+				name = material_name_format(**params)
 
 				material = get_or_create_material(name, color)
 
-				cube_mesh_name = mesh_name.format(**params)
+				cube_mesh_name = mesh_name_format(**params)
 				mesh = bpy_data_meshes_new(cube_mesh_name)
 				mesh.from_pydata(cube_verts, cube_edges, cube_faces)
 				mesh.materials.append(material)
 				mesh.update()
 
-				cube_object_name = cube_name.format(**params)
+				cube_object_name = cube_name_format(**params)
 				obj = bpy_data_objects_new(name=cube_object_name, object_data=mesh)
-				bpy_context_collection_objects.link(obj)
+				bpy_context_collection_objects_link(obj)
 				obj.location = (x, y, 0)
 				obj.parent = parent
 				obj.select_set(True)
@@ -234,7 +238,7 @@ def read_pixel_art(context, filepath: str,
 					params['color'] = '%02X%02X%02X%02X' % (int(r * 255), int(g * 255), int(b * 255), int(a * 255))
 					prev_color = color
 
-				name = material_name.format(**params)
+				name = material_name_format(**params)
 
 				pixel_verts_append((x,     y,     0))
 				pixel_verts_append((x + 1, y,     0))
@@ -261,7 +265,7 @@ def read_pixel_art(context, filepath: str,
 		mesh.update()
 
 		obj = bpy_data_objects_new(name=obj_name, object_data=mesh)
-		bpy_context_collection_objects.link(obj)
+		bpy_context_collection_objects_link(obj)
 
 		obj.select_set(True)
 		bpy.context.view_layer.objects.active = obj
