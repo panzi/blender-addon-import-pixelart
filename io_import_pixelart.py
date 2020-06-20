@@ -295,7 +295,7 @@ class ImportPixelArt(Operator, ImportHelper):
 			                              "Can be very slow.", "CUBE", 2),
 		),
 		name="Import As",
-		default='CUBES',
+		default='2D_MESH',
 	)
 
 	use_nodes:       BoolProperty(default=True, name="Use material nodes")
