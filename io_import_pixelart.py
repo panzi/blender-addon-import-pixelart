@@ -395,7 +395,7 @@ def read_pixel_art(context,
 		assert False, f"Illegal import_as value: {import_as}"
 
 	duration = perf_counter() - timestamp
-	print(f"Imported pixle art {obj_name} in {duration} seconds")
+	print(f"Imported pixel art {obj_name} in {duration} seconds")
 
 	return {'FINISHED'}
 

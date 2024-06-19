@@ -1,0 +1,22 @@
+schema_version = "1.0.0"
+id = "io_import_pixelart"
+version = "1.2.0"
+name = "Import Pixel Art"
+tagline = "Imports pixel art images, creating colored cubes or squares for each pixel."
+maintainer = "Mathias Panzenböck"
+type = "add-on"
+tags = ["Import", "Pixel-Art"]
+license = ["SPDX:MIT"]
+
+[permissions]
+files = "Import pixel art from disk"
+
+[build]
+paths_exclude_pattern = [
+    "/.git/",
+    "/tmp/",
+    "__pycache__/",
+    "*.png",
+    "*.zip",
+    ".*",
+]

@@ -1,7 +1,7 @@
-Import Pixle Art
+Import Pixel Art
 ================
 
-Blender add-on that imports pixle art images as colored cubes or squares.
+Blender add-on that imports pixel art images as colored cubes or squares.
 Pixels with 100% alpha are ignored.
 
 Use the Install button under Edit > Preferences > Add-ons to install this
