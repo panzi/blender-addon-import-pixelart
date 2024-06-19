@@ -7,6 +7,13 @@ Pixels with 100% alpha are ignored.
 Use the Install button under Edit > Preferences > Add-ons to install this
 script and then click the checkbox to activate it.
 
+**NOTE:** For best resuts the imported pixel art should actually have the
+apparent pixel be actual pixels in the image. If not, there is an option to
+[automaticall down-scale](#auto-down-scaling-of-up-scaled-pixel-art) such
+images, but it will not work for lossy images (JPEG) and might be slow. Maybe
+you'd rather want to down-scale the image manually (using nearest neighbor
+option) in an image editor.
+
 Features
 --------
 
@@ -15,14 +22,14 @@ planes in a single mesh. Pixels with 100% alpha are ignored. All pixels of the
 same color will share one material. The material can use nodes. The names of
 the created cubes and materials can be controlled through format strings.
 
-![](https://i.imgur.com/d9jeYRt.png)
+![Screenshot: Select image](https://i.imgur.com/HYQDuXh.png)
 
 If you use the option 'Separate Cubes' then the imported pixels are all parented
 to an empty object so they can be easily transformed as a whole. The cubes have
 a size of 1x1x1 so they can be easily moved around pixel-by-pixel while holding
 ctrl.
 
-![](https://i.imgur.com/f6kIrQw.png)
+![Screenshot: Imported as cubes](https://i.imgur.com/G7shPkv.png)
 
 If you use the option '2D Mesh' all the pixels will be planes in one single mesh.
 If you still want cubes then simply extrude the whole mesh by 1 unit in the Z
@@ -31,7 +38,7 @@ direction. Alternatively you simply can use the solidify modifier.
 This option imports **much faster** and it seems it is also faster to work with
 a single large mesh in blender than to work with many small objects.
 
-![](https://i.imgur.com/C4lITnC.png)
+![Screenshot: Imported as planes](https://i.imgur.com/esBicPn.png)
 
 Options
 -------
@@ -53,12 +60,17 @@ specified name will be used instead of creating new ones.
 ### Auto down-scaling of up-scaled pixel art
 
 Often pixel art is posted on the internet in an upscaled form, meaning one
-apprent pixel are actually 8x8 or more pixels. When this option is checked the
-image is analyzed and automatically down-scaled. This might be pretty slow
-for big images, since this is all done in Python. Also it only works if the
-image was up-scaled to an exact integer multiple of the original and no other
-filters where applied. The algorithm is quite primitive, but works for many
-pixel art images.
+apparent pixel is actually e.g. 8x8 or more pixels in the image. When this
+option is checked the image is analyzed and automatically down-scaled. This
+might be pretty slow for big images, since this is all done in Python.
+
+**NOTE:** This only works if the image was up-scaled to an exact integer
+multiple of the original and no other filters where applied. If the image
+was saved as a lossy format like JPEG this will fail pretty much always,
+since lossy formats kinda smudge the pixels. The used image should best
+be PNG, BMP, or GIF.
+
+The algorithm is quite primitive, but works for many pixel art images.
 
 ### Object Name
 
@@ -96,7 +108,7 @@ values. Because these variables use a `{name}`-syntax if you want to include
 curly braces in your names you need to escape them as `{{` and `}}`.
 
 * `{filename}` – The name of the file (not including the folder names).
-* `{use_nodes}` – The stirng `nodes` if the use material nodes option is
+* `{use_nodes}` – The string `nodes` if the use material nodes option is
   slected, an empty string otherwise.
 * `{color}` – Hexa-decimal string of the color of the pixel (RRGGBBAA).
 * `{x}` – X-coordinate of the pixel.
