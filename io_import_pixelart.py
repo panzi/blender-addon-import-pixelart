@@ -3,16 +3,18 @@
 bl_info = {
 	"name": "Import Pixel Art",
 	"author": "Mathias Panzenböck",
-	"version": (1,  1, 1),
+	"version": (1,  2, 0),
 	"blender": (2, 80, 0),
 	"location": "File > Import > Pixel Art",
 	"description": "Imports pixel art images, creating colored cubes or squares for each pixel.",
-	"wiki_url": "https://github.com/panzi/blender-addon-import-pixelart/blob/master/README.md",
+	"doc_url": "https://github.com/panzi/blender-addon-import-pixelart/blob/master/README.md",
 	"tracker_url": "https://github.com/panzi/blender-addon-import-pixelart/issues",
 	"category": "Import-Export"
 }
 
+from array import array
 from time import perf_counter
+from math import nan
 import os.path
 import bpy
 
@@ -25,14 +27,16 @@ MATERIAL_NAME = 'pixel_art_{color}'
 CUBE_NAME = '{filename}_{x}_{y}'
 MESH_NAME = '{filename}_{x}_{y}_mesh'
 
-def read_pixel_art(context, filepath: str,
-		import_as:str='CUBES',
-		use_nodes:bool=True,
-		reuse_materials:bool=False,
-		material_name:str=MATERIAL_NAME,
-		cube_name:str=CUBE_NAME,
-		mesh_name:str=MESH_NAME,
-		parent_name:str=PARENT_NAME):
+def read_pixel_art(context,
+		filepath: str,
+		import_as: str = 'CUBES',
+		use_nodes: bool = True,
+		reuse_materials: bool = False,
+		material_name: str = MATERIAL_NAME,
+		cube_name: str = CUBE_NAME,
+		mesh_name: str = MESH_NAME,
+		parent_name: str = PARENT_NAME,
+		auto_scale: bool = False):
 
 	timestamp = perf_counter()
 
@@ -101,6 +105,123 @@ def read_pixel_art(context, filepath: str,
 		width, height = image.size
 		pixels = image.pixels[:]
 
+		if auto_scale:
+			strides: set[int] = set()
+			y_cols: list[list] = [[nan, nan, nan, nan, 0]] * width
+
+			a = 1.0
+			for y in range(height):
+				offset = y * channels * width
+
+				curr_r = curr_g = curr_b = curr_a = -1
+				curr_stride = 0
+
+				for x in range(width):
+					if channels == 1:
+						r = g = b = pixels[offset + x]
+					elif channels == 3:
+						index = offset + x * channels
+						r = pixels[index]
+						g = pixels[index + 1]
+						b = pixels[index + 2]
+					else:
+						index = offset + x * channels
+						r = pixels[index]
+						g = pixels[index + 1]
+						b = pixels[index + 2]
+						a = pixels[index + 3]
+
+					if r == curr_r and g == curr_g and b == curr_b and a == curr_a:
+						curr_stride += 1
+					else:
+						strides.add(curr_stride)
+						curr_stride = 1
+						curr_r = r
+						curr_g = g
+						curr_b = b
+						curr_a = a
+
+					curr_y = y_cols[x]
+					curr_y_r, curr_y_g, curr_y_b, curr_y_a, curr_y_stride = curr_y
+
+					if r == curr_y_r and g == curr_y_g and b == curr_y_b and a == curr_y_a:
+						curr_y[4] = curr_y_stride + 1
+					else:
+						strides.add(curr_y_stride)
+						curr_y[0] = r
+						curr_y[1] = g
+						curr_y[2] = b
+						curr_y[3] = a
+						curr_y[4] = 1
+
+				strides.add(curr_stride)
+
+			for curr_y in y_cols:
+				strides.add(curr_y[4])
+
+			strides.remove(0)
+
+			if strides:
+				sorted_strides = sorted(strides)
+				min_stride = sorted_strides[0]
+
+				if min_stride <= 1:
+					print(f"[Import Pixel Art] auto scale faild, minimum stride {min_stride} isn't bigger than 1")
+				else:
+					print(f'[Import Pixel Art] auto scale: found minimum stride: {min_stride}')
+					all_ok = True
+
+					rem = width % min_stride
+					if rem:
+						print(f'[Import Pixel Art] auto scale faild, width {width} is not a multiple of {min_stride}, remainder: {rem}')
+						all_ok = False
+
+					rem = height % min_stride
+					if rem:
+						print(f'[Import Pixel Art] auto scale faild, height {height} is not a multiple of {min_stride}, remainder: {rem}')
+						all_ok = False
+
+					if all_ok:
+						for stride in sorted_strides:
+							rem = stride % min_stride
+							if rem:
+								print(f'[Import Pixel Art] auto scale faild, stride {stride} is not a multiple of {min_stride}, remainder: {rem}')
+								all_ok = False
+								break
+
+					if all_ok:
+						new_width  = width  // min_stride
+						new_height = height // min_stride
+						print(f'[Import Pixel Art] auto scaling pixel art {width} x {height} -> {new_width} x {new_height}')
+
+						new_pixels = array('f', (nan for _ in range(new_width * new_height * channels)))
+
+						for new_y in range(new_height):
+							y = new_y * min_stride
+							new_offset = new_y * channels * new_width
+							offset = y * channels * width
+
+							for new_x in range(new_width):
+								x = new_x * min_stride
+								if channels == 1:
+									new_pixels[new_offset + new_x] = pixels[offset + x]
+								elif channels == 3:
+									index = offset + x * channels
+									new_index = new_offset + new_x * channels
+									new_pixels[new_index]     = pixels[index]
+									new_pixels[new_index + 1] = pixels[index + 1]
+									new_pixels[new_index + 2] = pixels[index + 2]
+								else:
+									index = offset + x * channels
+									new_index = new_offset + new_x * channels
+									new_pixels[new_index]     = pixels[index]
+									new_pixels[new_index + 1] = pixels[index + 1]
+									new_pixels[new_index + 2] = pixels[index + 2]
+									new_pixels[new_index + 3] = pixels[index + 3]
+
+						width  = new_width
+						height = new_height
+						pixels = new_pixels
 	finally:
 		image.user_clear()
 		bpy.data.images.remove(image)
@@ -301,6 +422,7 @@ class ImportPixelArt(Operator, ImportHelper):
 
 	use_nodes:       BoolProperty(default=True, name="Use material nodes")
 	reuse_materials: BoolProperty(default=False, name="Reuse existing materials with matching names")
+	auto_scale:      BoolProperty(default=False, name="Auto down-scaling of up-scaled pixel art (might be slow)")
 
 	parent_name:   StringProperty(default=PARENT_NAME, name="Object Name")
 	cube_name:     StringProperty(default=CUBE_NAME, name="Pixel Names")
@@ -332,7 +454,8 @@ class ImportPixelArt(Operator, ImportHelper):
 			material_name=self.material_name,
 			cube_name=self.cube_name,
 			mesh_name=self.mesh_name,
-			parent_name=self.parent_name)
+			parent_name=self.parent_name,
+			auto_scale=self.auto_scale)
 
 
 def menu_func_import(self, context):

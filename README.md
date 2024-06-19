@@ -50,6 +50,16 @@ When this option is checked the materials of the pixels will use nodes.
 When this option is checked already existing materials that match the
 specified name will be used instead of creating new ones.
 
+### Auto down-scaling of up-scaled pixel art
+
+Often pixel art is posted on the internet in an upscaled form, meaning one
+apprent pixel are actually 8x8 or more pixels. When this option is checked the
+image is analyzed and automatically down-scaled. This might be pretty slow
+for big images, since this is all done in Python. Also it only works if the
+image was up-scaled to an exact integer multiple of the original and no other
+filters where applied. The algorithm is quite primitive, but works for many
+pixel art images.
+
 ### Object Name
 
 Pattern for the name of the empty object that will be the parent of all the
