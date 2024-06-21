@@ -135,6 +135,8 @@ def read_pixel_art(context,
 						curr_stride += 1
 					else:
 						strides.add(curr_stride)
+						if curr_stride <= 1:
+							break
 						curr_stride = 1
 						curr_r = r
 						curr_g = g
@@ -148,6 +150,8 @@ def read_pixel_art(context,
 						curr_y[4] = curr_y_stride + 1
 					else:
 						strides.add(curr_y_stride)
+						if curr_y_stride <= 1:
+							break
 						curr_y[0] = r
 						curr_y[1] = g
 						curr_y[2] = b
