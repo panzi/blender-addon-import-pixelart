@@ -2,11 +2,12 @@ schema_version = "1.0.0"
 id = "io_import_pixelart"
 version = "1.2.0"
 name = "Import Pixel Art"
-tagline = "Imports pixel art images, creating colored cubes or squares for each pixel."
+tagline = "Imports pixel art as colored cubes or squares for each pixel"
 maintainer = "Mathias Panzenböck"
 type = "add-on"
-tags = ["Import", "Pixel-Art"]
+tags = ["Import-Export"]
 license = ["SPDX:MIT"]
+blender_version_min = "4.2.0"
 
 [permissions]
 files = "Import pixel art from disk"
