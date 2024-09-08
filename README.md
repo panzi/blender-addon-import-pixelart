@@ -10,9 +10,10 @@ script and then click the checkbox to activate it.
 **NOTE:** For best resuts the imported pixel art should actually have the
 apparent pixels be actual 1x1 pixels in the image. If not, there is an option
 to [automaticall down-scale](#auto-down-scaling-of-up-scaled-pixel-art) such
-images, but it will not work for lossy images (JPEG) and might be slow. Maybe
-you'd rather want to down-scale the image manually (using nearest neighbor
-option) in an image editor.
+images, but it will not work for lossy images (JPEG) or if it was scaled to a
+non integer multiple of the original size and might be slow. Maybe you'd
+rather want to down-scale the image manually (using nearest neighbor option)
+in an image editor.
 
 Features
 --------
@@ -113,25 +114,3 @@ curly braces in your names you need to escape them as `{{` and `}}`.
 * `{color}` – Hexa-decimal string of the color of the pixel (RRGGBBAA).
 * `{x}` – X-coordinate of the pixel.
 * `{y}` – Y-coordinate of the pixel.
-
-MIT License
------------
-
-Copyright © 2016-2020 Mathias Panzenböck
-
-Permission is hereby granted, free of charge, to any person obtaining a copy of
-this software and associated documentation files (the "Software"), to deal in
-the Software without restriction, including without limitation the rights to
-use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
-the Software, and to permit persons to whom the Software is furnished to do so,
-subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
-FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
-COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
-IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
-CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
