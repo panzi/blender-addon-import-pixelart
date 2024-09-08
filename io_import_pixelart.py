@@ -159,6 +159,8 @@ def read_pixel_art(context,
 						curr_y[4] = 1
 
 				strides.add(curr_stride)
+				if curr_stride == 1:
+					break
 
 			for curr_y in y_cols:
 				strides.add(curr_y[4])
