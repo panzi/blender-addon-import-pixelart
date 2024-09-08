@@ -6,7 +6,7 @@ tagline = "Imports pixel art as colored cubes or squares for each pixel"
 maintainer = "Mathias Panzenböck"
 type = "add-on"
 tags = ["Import-Export"]
-license = ["SPDX:MIT"]
+license = ["SPDX:GPL-3.0-or-later"]
 blender_version_min = "4.2.0"
 
 [permissions]
