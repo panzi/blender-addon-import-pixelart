@@ -7,7 +7,7 @@ Pixels with 100% alpha are ignored.
 Use the Install button under Edit > Preferences > Add-ons to install this
 script and then click the checkbox to activate it.
 
-**NOTE:** For best resuts the imported pixel art should actually have the
+**NOTE:** For best results the imported pixel art should actually have the
 apparent pixels be actual 1x1 pixels in the image. If not, there is an option
 to [automaticall down-scale](#auto-down-scaling-of-up-scaled-pixel-art) such
 images, but it will not work for lossy images (JPEG) or if it was scaled to a
@@ -89,7 +89,7 @@ Pattern for the names of the pixel objects.
 
 ### Mesh Names
 
-Pattern of the names of the meses of the pixels.
+Pattern of the names of the meshes of the pixels.
 
 [Pattern variables](#patterns): `{filename}`, `{use_nodes}`, `{color}`, `{x}`, `{y}`
 
@@ -110,7 +110,7 @@ curly braces in your names you need to escape them as `{{` and `}}`.
 
 * `{filename}` – The name of the file (not including the folder names).
 * `{use_nodes}` – The string `nodes` if the use material nodes option is
-  slected, an empty string otherwise.
+  selected, an empty string otherwise.
 * `{color}` – Hexa-decimal string of the color of the pixel (RRGGBBAA).
 * `{x}` – X-coordinate of the pixel.
 * `{y}` – Y-coordinate of the pixel.
