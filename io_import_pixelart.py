@@ -23,7 +23,7 @@ bl_info = {
 	"blender": (2, 80, 0),
 	"location": "File > Import > Pixel Art",
 	"description": "Imports pixel art images, creating colored cubes or squares for each pixel.",
-	"doc_url": "https://github.com/panzi/blender-addon-import-pixelart/blob/master/README.md",
+	"doc_url": "https://github.com/panzi/blender-addon-import-pixelart#readme",
 	"tracker_url": "https://github.com/panzi/blender-addon-import-pixelart/issues",
 	"category": "Import-Export"
 }

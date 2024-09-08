@@ -8,6 +8,7 @@ type = "add-on"
 tags = ["Import-Export"]
 license = ["SPDX:GPL-3.0-or-later"]
 blender_version_min = "4.2.0"
+website = "https://github.com/panzi/blender-addon-import-pixelart#readme"
 
 [permissions]
 files = "Import pixel art from disk"
