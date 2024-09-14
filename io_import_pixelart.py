@@ -19,7 +19,7 @@
 bl_info = {
 	"name": "Import Pixel Art",
 	"author": "Mathias Panzenböck",
-	"version": (1,  2, 0),
+	"version": (1,  2, 1),
 	"blender": (2, 80, 0),
 	"location": "File > Import > Pixel Art",
 	"description": "Imports pixel art images, creating colored cubes or squares for each pixel.",
@@ -28,6 +28,7 @@ bl_info = {
 	"category": "Import-Export"
 }
 
+from typing import Generator
 from array import array
 from time import perf_counter
 from math import nan
@@ -43,6 +44,79 @@ MATERIAL_NAME = 'pixel_art_{color}'
 CUBE_NAME = '{filename}_{x}_{y}'
 MESH_NAME = '{filename}_{x}_{y}_mesh'
 
+# values recorded on Linux with:
+# GDK_DPI_SCALE=2
+# bpy.context.preferences.system.dpi = 122
+# bpy.context.preferences.view.ui_scale = 1.0
+ICON_SIZE = 42
+DEFAULT_CHAR_SIZE = 16
+CHAR_SIZES = {
+	'A': 14, 'B': 12, 'C': 14, 'D': 14, 'E': 11, 'F': 11, 'G': 14, 'H': 14, 'I':  9, 'J': 11, 'K': 12,
+	'L': 10, 'M': 17, 'N': 14, 'O': 14, 'P': 12, 'Q': 14, 'R': 12, 'S': 12, 'T': 13, 'U': 13, 'V': 14,
+	'W': 20, 'X': 12, 'Y': 13, 'Z': 12,
+
+	'a': 11, 'b': 12, 'c': 10, 'd': 11, 'e': 11, 'f':  8, 'g': 12, 'h': 12, 'i':  5, 'j':  5, 'k': 10,
+	'l':  5, 'm': 16, 'n': 11, 'o': 12, 'p': 12, 'q': 11, 'r':  9, 's': 10, 't':  7, 'u': 10, 'v': 12,
+	'w': 16, 'x': 11, 'y': 11, 'z':  9,
+
+	'0': 13, '1': 13, '2': 13, '3': 13, '4': 13, '5': 13, '6': 13, '7': 13, '8': 13, '9': 13,
+	' ':  7, '!':  5, '?': 11, ',':  5, '.':  5, ':':  5, '•': 10,
+}
+
+def guess_text_width(text: str) -> int:
+	default_char_size = DEFAULT_CHAR_SIZE
+	char_sizes = CHAR_SIZES
+	width = 0
+
+	for ch in text:
+		size = char_sizes.get(ch)
+		if size is None:
+			size = default_char_size
+		width += size
+
+	return width
+
+def iter_spaces(text: str) -> Generator[int, None, None]:
+	for index, char in enumerate(text):
+		if char.isspace():
+			yield index
+	yield len(text)
+
+def wrap_lines(text: str, width: int, icon: bool) -> list[str]:
+	lines: list[str] = []
+	icon_size = ICON_SIZE if icon else 0
+
+	for line in text.split('\n'):
+		curr_line: list[str] = []
+		curr_width = icon_size
+		prev_index = 0
+		for index in iter_spaces(line):
+			chunk = line[prev_index:index]
+			chunk_width = guess_text_width(chunk)
+			next_width = curr_width + chunk_width
+			if curr_width == 0 or next_width < width:
+				curr_line.append(chunk)
+				curr_width = next_width
+			else:
+				lines.append(''.join(curr_line))
+				chunk = chunk.lstrip()
+				curr_width = guess_text_width(chunk)
+				curr_line.clear()
+				curr_line.append(chunk)
+
+			prev_index = index
+
+		if curr_line:
+			lines.append(''.join(curr_line))
+
+		icon_size = 0
+
+	if not lines:
+		lines.append('')
+
+	return lines
+
+
 class ImportPixelArt(Operator, ImportHelper):
 	"""Imports pixel art images, creating colored cubes or squares for each pixel."""
 
@@ -54,11 +128,13 @@ class ImportPixelArt(Operator, ImportHelper):
 
 	import_as: EnumProperty(
 		items=(
-			('2D_MESH', '2D Mesh',        "A single mesh that contains all pixels as squares.\n"
-			                              "To get cubes extrude it by 1 unit in the Z direction or use the solidify modifer.",
-			                              "MESH_PLANE", 1),
-			('CUBES',   'Separate Cubes', "Separate cubes where each cube is its own object.\n"
-			                              "Can be very slow.", "CUBE", 2),
+			('2D_MESH', '2D Mesh',
+			 "A single mesh that contains all pixels as squares.\n"
+			 "To get cubes extrude it by 1 unit in the Z direction or use the solidify modifer.",
+			 "MESH_PLANE", 1),
+			('CUBES',   'Separate Cubes',
+			 "Separate cubes where each cube is its own object.\n"
+			 "Can be very slow!", "CUBE", 2),
 		),
 		name="Import As",
 		default='2D_MESH',
@@ -72,6 +148,33 @@ class ImportPixelArt(Operator, ImportHelper):
 	cube_name:     StringProperty(default=CUBE_NAME, name="Pixel Names")
 	mesh_name:     StringProperty(default=MESH_NAME, name="Mesh Names")
 	material_name: StringProperty(default=MATERIAL_NAME, name="Material Names")
+
+	def draw(self, context):
+		layout = self.layout
+
+		layout.prop(self, 'import_as')
+		layout.prop(self, 'use_nodes')
+		layout.prop(self, 'reuse_materials')
+		layout.prop(self, 'auto_scale')
+
+		layout.prop(self, 'parent_name')
+		layout.prop(self, 'cube_name')
+		layout.prop(self, 'mesh_name')
+		layout.prop(self, 'material_name')
+
+		text = (
+			"Bigger images will be slow and might freeze Blender during importing.\n"
+			"To prevent freezes keep to these approximate image size limits:\n"
+			"• 2D Mesh: 1280x960 or 1,500,000 pixels\n"
+			"• Separate Cubes: 70x70 or 5,000 pixels"
+		)
+
+		width = (context.region.width / bpy.context.preferences.view.ui_scale) * (122 / bpy.context.preferences.system.dpi)
+		lines = wrap_lines(text, width - 2, True)
+		icon = 'INFO'
+		for line in lines:
+			layout.label(text=line, icon=icon)
+			icon = 'NONE'
 
 	def execute(self, context):
 		timestamp = perf_counter()
