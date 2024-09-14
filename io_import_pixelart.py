@@ -55,9 +55,9 @@ CHAR_SIZES = {
 	'L': 10, 'M': 17, 'N': 14, 'O': 14, 'P': 12, 'Q': 14, 'R': 12, 'S': 12, 'T': 13, 'U': 13, 'V': 14,
 	'W': 20, 'X': 12, 'Y': 13, 'Z': 12,
 
-	'a': 11, 'b': 12, 'c': 10, 'd': 11, 'e': 11, 'f':  8, 'g': 12, 'h': 12, 'i':  5, 'j':  5, 'k': 10,
-	'l':  5, 'm': 16, 'n': 11, 'o': 12, 'p': 12, 'q': 11, 'r':  9, 's': 10, 't':  7, 'u': 10, 'v': 12,
-	'w': 16, 'x': 11, 'y': 11, 'z':  9,
+	'a': 11, 'b': 12, 'c': 10, 'd': 11, 'e': 12, 'f':  8, 'g': 12, 'h': 12, 'i':  5, 'j':  5, 'k': 10,
+	'l':  6, 'm': 16, 'n': 12, 'o': 12, 'p': 12, 'q': 11, 'r':  9, 's': 10, 't':  7, 'u': 11, 'v': 12,
+	'w': 16, 'x': 11, 'y': 11, 'z': 10,
 
 	'0': 13, '1': 13, '2': 13, '3': 13, '4': 13, '5': 13, '6': 13, '7': 13, '8': 13, '9': 13,
 	' ':  7, '!':  5, '?': 11, ',':  5, '.':  5, ':':  5, '•': 10,
@@ -94,7 +94,7 @@ def wrap_lines(text: str, width: int, icon: bool) -> list[str]:
 			chunk = line[prev_index:index]
 			chunk_width = guess_text_width(chunk)
 			next_width = curr_width + chunk_width
-			if curr_width == 0 or next_width < width:
+			if curr_width == 0 or next_width <= width:
 				curr_line.append(chunk)
 				curr_width = next_width
 			else:
