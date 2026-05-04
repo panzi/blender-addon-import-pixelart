@@ -1,6 +1,8 @@
 Import Pixel Art
 ================
 
+Fork purpose: Sprite Stack import.
+
 Blender add-on that imports pixel art images as colored cubes or squares.
 Pixels with 100% alpha are ignored.
 
@@ -40,6 +42,10 @@ This option imports **much faster** and it seems it is also faster to work with
 a single large mesh in blender than to work with many small objects.
 
 ![Screenshot: Imported as planes](https://i.imgur.com/esBicPn.png)
+
+
+![Screenshot: Imported as Sprite Stack](http://i.imgur.com/2Ovqis7.png)
+
 
 Options
 -------

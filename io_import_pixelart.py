@@ -36,7 +36,7 @@ import os.path
 import bpy
 
 from bpy_extras.io_utils import ImportHelper
-from bpy.props import StringProperty, BoolProperty, EnumProperty
+from bpy.props import StringProperty, BoolProperty, EnumProperty, IntProperty, FloatProperty
 from bpy.types import Operator
 
 PARENT_NAME = '{filename}'
@@ -148,7 +148,14 @@ class ImportPixelArt(Operator, ImportHelper):
 	cube_name:     StringProperty(default=CUBE_NAME, name="Pixel Names")
 	mesh_name:     StringProperty(default=MESH_NAME, name="Mesh Names")
 	material_name: StringProperty(default=MATERIAL_NAME, name="Material Names")
-
+	
+	sprite_stack:  BoolProperty(default=False, name="Load as Sprite Stack")
+	stack_size_x:  IntProperty(default=32, name="Stack Size X")
+	stack_size_y:  IntProperty(default=32, name="Stack Size Y")
+	offset_x:      IntProperty(default=-16, name="Offset X")
+	offset_y:      IntProperty(default=-16, name="Offset Y")
+	object_scale:  FloatProperty(default=1.0, name="Scale")
+	
 	def draw(self, context):
 		layout = self.layout
 
@@ -162,13 +169,22 @@ class ImportPixelArt(Operator, ImportHelper):
 		layout.prop(self, 'mesh_name')
 		layout.prop(self, 'material_name')
 
+		layout.prop(self, 'sprite_stack')
+		layout.prop(self, 'object_scale')
+		layout.prop(self, 'offset_x')
+		layout.prop(self, 'offset_y')
+		
+		if self.sprite_stack:
+			layout.prop(self, 'stack_size_x')
+			layout.prop(self, 'stack_size_y')
+
 		text = (
 			"Bigger images will be slow and might freeze Blender during importing.\n"
 			"To prevent freezes keep to these approximate image size limits:\n"
 			"• 2D Mesh: 1280x960 or 1,500,000 pixels\n"
 			"• Separate Cubes: 70x70 or 5,000 pixels"
 		)
-
+		
 		width = (context.region.width / bpy.context.preferences.view.ui_scale) * (122 / bpy.context.preferences.system.dpi)
 		lines = wrap_lines(text, width - 2, True)
 		icon = 'INFO'
@@ -180,7 +196,7 @@ class ImportPixelArt(Operator, ImportHelper):
 		timestamp = perf_counter()
 
 		# validate inputs
-		pix_params = dict(filename='', color='AABBCCDD', x=0, y=0, use_nodes='')
+		pix_params = dict(filename='', color='AABBCCDD', x=0, y=0, z=0, use_nodes='')
 		for name, value, params in [
 				('object name', self.parent_name, dict(filename='', use_nodes='')),
 				('material names', self.material_name, pix_params),
@@ -205,7 +221,14 @@ class ImportPixelArt(Operator, ImportHelper):
 		mesh_name = self.mesh_name
 		parent_name = self.parent_name
 		auto_scale = self.auto_scale
-
+		
+		sprite_stack = self.sprite_stack
+		stack_size_x = self.stack_size_x
+		stack_size_y = self.stack_size_y
+		offset_x = self.offset_x
+		offset_y = self.offset_y
+		object_scale = self.object_scale
+		
 		struse_nodes = 'nodes' if use_nodes else ''
 		filename = os.path.split(filepath)[1]
 
@@ -436,13 +459,14 @@ class ImportPixelArt(Operator, ImportHelper):
 
 			parent = bpy_data_objects_new(name=obj_name, object_data=None)
 			bpy_context_collection_objects_link(parent)
-			params = dict(filename=filename, color='', x=0, y=0, use_nodes=struse_nodes)
+			params = dict(filename=filename, color='', x=0, y=0, z=0, use_nodes=struse_nodes)
 
 			cube_name_format = cube_name.format
 			mesh_name_format = mesh_name.format
 
 			for y in range(height):
 				offset = y * channels * width
+				params['y'] = y
 				for x in range(width):
 					if channels == 1:
 						r = g = b = pixels[offset + x]
@@ -481,12 +505,25 @@ class ImportPixelArt(Operator, ImportHelper):
 					cube_object_name = cube_name_format(**params)
 					obj = bpy_data_objects_new(name=cube_object_name, object_data=mesh)
 					bpy_context_collection_objects_link(obj)
-					obj.location = (x, y, 0)
+					
+					if sprite_stack:
+						out_x = x % stack_size_x + offset_x
+						out_y = y % stack_size_y + offset_y
+						out_z = x // stack_size_x + y // stack_size_y
+						params['z'] = out_z
+					else:
+						out_x = x + offset_x
+						out_y = y + offset_y
+						out_z = 0
+						
+					obj.location = (out_x, out_y, out_z)
+					
 					obj.parent = parent
 					obj.select_set(True)
 
 			parent.select_set(True)
 			bpy.context.view_layer.objects.active = parent
+			bpy.context.object.scale *= object_scale
 
 		elif import_as == '2D_MESH':
 
@@ -533,11 +570,20 @@ class ImportPixelArt(Operator, ImportHelper):
 						prev_color = color
 
 					name = material_name_format(**params)
+					
+					if sprite_stack:
+						out_x = x % stack_size_x + offset_x
+						out_y = y % stack_size_y + offset_y
+						out_z = x // stack_size_x + y // stack_size_y
+					else:
+						out_x = x + offset_x
+						out_y = y + offset_y
+						out_z = 0
 
-					pixel_verts_append((x,     y,     0))
-					pixel_verts_append((x + 1, y,     0))
-					pixel_verts_append((x + 1, y + 1, 0))
-					pixel_verts_append((x,     y + 1, 0))
+					pixel_verts_append((out_x,     out_y,     out_z))
+					pixel_verts_append((out_x + 1, out_y,     out_z))
+					pixel_verts_append((out_x + 1, out_y + 1, out_z))
+					pixel_verts_append((out_x,     out_y + 1, out_z))
 
 					pixel_faces_append((vert_index, vert_index + 1, vert_index + 2, vert_index + 3))
 					vert_index += 4
@@ -563,7 +609,11 @@ class ImportPixelArt(Operator, ImportHelper):
 
 			obj.select_set(True)
 			bpy.context.view_layer.objects.active = obj
-
+			bpy.context.object.scale *= object_scale
+			
+			if sprite_stack:
+				bpy.context.object.modifiers.new("SpriteStack Solid", type='SOLIDIFY')
+				bpy.context.object.modifiers["SpriteStack Solid"].thickness = 1
 		else:
 			assert False, f"Illegal import_as value: {import_as}"
 
